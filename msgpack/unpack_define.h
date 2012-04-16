@@ -68,6 +68,9 @@ typedef enum {
 	CS_RAW_32            = 0x1b,
 	CS_ARRAY_16          = 0x1c,
 	CS_ARRAY_32          = 0x1d,
+
+	CS_NP_ARRAY          = 0x04,
+
 	CS_MAP_16            = 0x1e,
 	CS_MAP_32            = 0x1f,
 
@@ -81,6 +84,7 @@ typedef enum {
 	CT_ARRAY_ITEM,
 	CT_MAP_KEY,
 	CT_MAP_VALUE,
+	CT_NP_ARRAY_ITEM
 } msgpack_container_type;
 
 

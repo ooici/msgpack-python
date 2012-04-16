@@ -14,6 +14,10 @@ import gc
 _gc_disable = gc.disable
 _gc_enable = gc.enable
 
+import numpy as np
+cimport numpy as np
+np.import_array()
+
 cdef extern from "pack.h":
     struct msgpack_packer:
         char* buf
@@ -32,6 +36,7 @@ cdef extern from "pack.h":
     int msgpack_pack_map(msgpack_packer* pk, size_t l)
     int msgpack_pack_raw(msgpack_packer* pk, size_t l)
     int msgpack_pack_raw_body(msgpack_packer* pk, char* body, size_t l)
+    int msgpack_pack_np_array(msgpack_packer* pk, size_t ld)
 
 cdef int DEFAULT_RECURSE_LIMIT=511
 
@@ -142,6 +147,14 @@ cdef class Packer(object):
                 for v in o:
                     ret = self._pack(v, nest_limit-1)
                     if ret != 0: break
+        elif np.PyArray_Check(o):
+
+            print 'PyArray_Size: "%s"' % np.PyArray_SIZE(o)
+            print 'PyArray_NDims: "%s"' % np.PyArray_NDIM(o)
+
+            ret = msgpack_pack_np_array(&self.pk, np.PyArray_NDIM(o))
+
+
         elif self._default:
             o = self._default(o)
             ret = self._pack(o, nest_limit-1)
@@ -234,7 +247,10 @@ def unpackb(object packed, object object_hook=None, object list_hook=None, bint 
         ctx.user.list_hook = <PyObject*>list_hook
     _gc_disable()
     try:
+        print 'Calling Template Execute....'
         ret = template_execute(&ctx, buf, buf_len, &off)
+        print 'Called Template Execute....'
+
     finally:
         _gc_enable()
     if ret == 1:

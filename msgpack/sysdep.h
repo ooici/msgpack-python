@@ -89,6 +89,10 @@ typedef unsigned int _msgpack_atomic_counter_t;
 #define _msgpack_be64(x) (x)
 #endif
 
+#include <numpy/arrayobject.h>
+
 
 #endif /* msgpack/sysdep.h */
+
+
 

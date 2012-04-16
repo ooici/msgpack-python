@@ -21,6 +21,8 @@
 #include "sysdep.h"
 #include "pack_define.h"
 
+#include "Python.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -68,6 +70,8 @@ static inline int msgpack_pack_map(msgpack_packer* pk, unsigned int n);
 
 static inline int msgpack_pack_raw(msgpack_packer* pk, size_t l);
 static inline int msgpack_pack_raw_body(msgpack_packer* pk, const void* b, size_t l);
+
+static inline int msgpack_pack_np_array(msgpack_packer* pk, unsigned int ld);
 
 static inline int msgpack_pack_write(msgpack_packer* pk, const char *data, size_t l)
 {

@@ -7,6 +7,7 @@ import sys
 from glob import glob
 from distutils.core import setup, Extension
 from distutils.command.sdist import sdist
+import numpy as np
 
 try:
     from Cython.Distutils import build_ext
@@ -52,6 +53,7 @@ if sys.platform == 'win32':
 msgpack_mod = Extension('msgpack._msgpack',
                         sources=sources,
                         libraries=libraries,
+                        include_dirs = [np.get_include(),]
                         )
 del sources, libraries
 
@@ -82,5 +84,8 @@ setup(name='msgpack-python',
           'Development Status :: 4 - Beta',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: Apache Software License',
-          ]
+          ],
+      requires = [
+          'numpy',
+          ],
       )

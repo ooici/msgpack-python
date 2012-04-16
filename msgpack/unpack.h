@@ -169,6 +169,21 @@ static inline int template_callback_array_end(unpack_user* u, msgpack_unpack_obj
     return 0;
 }
 
+
+static inline int template_callback_np_array(unpack_user* u, unsigned int n, msgpack_unpack_object* o)
+{
+    printf("template_callback_np_array\n");
+
+    PyObject *p = PyDict_New();
+
+    if (!p)
+        return -1;
+    *o = p;
+    return 0;
+}
+
+
+
 static inline int template_callback_map(unpack_user* u, unsigned int n, msgpack_unpack_object* o)
 {
     PyObject *p = PyDict_New();

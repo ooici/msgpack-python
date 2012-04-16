@@ -68,6 +68,9 @@ msgpack_unpack_struct_decl(_context) {
 
 msgpack_unpack_func(void, _init)(msgpack_unpack_struct(_context)* ctx)
 {
+
+  printf("Msgpack_unpack_func 1 \n");
+
 	ctx->cs = CS_HEADER;
 	ctx->trail = 0;
 	ctx->top = 0;
@@ -76,6 +79,8 @@ msgpack_unpack_func(void, _init)(msgpack_unpack_struct(_context)* ctx)
 
 msgpack_unpack_func(msgpack_unpack_object, _data)(msgpack_unpack_struct(_context)* ctx)
 {
+  printf("Msgpack_unpack_func 2\n");
+
 	return (ctx)->stack[0].obj;
 }
 
@@ -89,6 +94,9 @@ msgpack_unpack_func(int, _execute)(msgpack_unpack_struct(_context)* ctx, const c
 	unsigned int trail = ctx->trail;
 	unsigned int cs = ctx->cs;
 	unsigned int top = ctx->top;
+
+  printf("Msgpack_unpack_func \n");
+
 
 	msgpack_unpack_struct(_stack)* stack = ctx->stack;
 	msgpack_unpack_user* user = &ctx->user;
@@ -128,13 +136,14 @@ msgpack_unpack_func(int, _execute)(msgpack_unpack_struct(_context)* ctx, const c
 	stack[top].ct = ct_; \
     stack[top].curr = 0; \
 	stack[top].count = count_; \
-	/*printf("container %d count %d stack %d\n",stack[top].obj,count_,top);*/ \
+	printf("container %d count %d stack %d ct %d\n",stack[top].obj,count_,top, ct_); \
 	/*printf("stack push %d\n", top);*/ \
 	++top; \
 	goto _header_again
 
 #define NEXT_CS(p) \
 	((unsigned int)*p & 0x1f)
+	// What is this about - why shift the value of CS?
 
 #define PTR_CAST_8(ptr)   (*(uint8_t*)ptr)
 #define PTR_CAST_16(ptr)  _msgpack_be16(*(uint16_t*)ptr)
@@ -172,7 +181,10 @@ msgpack_unpack_func(int, _execute)(msgpack_unpack_struct(_context)* ctx, const c
 					push_simple_value(_false);
 				case 0xc3:  // true
 					push_simple_value(_true);
-				//case 0xc4:
+
+				case 0xc4:
+				  printf("case 0xc4 ! \n");
+				  again_fixed_trail(NEXT_CS(p), 2 << (((unsigned int)*p) & 0x01));
 				//case 0xc5:
 				//case 0xc6:
 				//case 0xc7:
@@ -287,6 +299,12 @@ msgpack_unpack_func(int, _execute)(msgpack_unpack_struct(_context)* ctx, const c
 				/* FIXME security guard */
 				start_container(_array, (uint32_t)PTR_CAST_32(n), CT_ARRAY_ITEM);
 
+
+      case CS_NP_ARRAY:
+        printf("CS_NP_ARRAY \n");
+        start_container(_np_array, (uint16_t)PTR_CAST_16(n), CT_NP_ARRAY_ITEM);
+
+
 			case CS_MAP_16:
 				start_container(_map, (uint16_t)PTR_CAST_16(n), CT_MAP_KEY);
 			case CS_MAP_32:
@@ -294,11 +312,15 @@ msgpack_unpack_func(int, _execute)(msgpack_unpack_struct(_context)* ctx, const c
 				start_container(_map, (uint32_t)PTR_CAST_32(n), CT_MAP_KEY);
 
 			default:
+        printf("SHIT default! \n");
+
 				goto _failed;
 			}
 		}
 
 _push:
+
+  printf("_push ! \n");
 	if(top == 0) { goto _finish; }
 	c = &stack[top-1];
 	switch(c->ct) {
@@ -312,6 +334,11 @@ _push:
 			goto _push;
 		}
 		goto _header_again;
+
+  case CT_NP_ARRAY_ITEM:
+    printf("CT_NP_ARRAY_ITEM \n");
+
+
 	case CT_MAP_KEY:
 		c->map_key = obj;
 		c->ct = CT_MAP_VALUE;
@@ -333,6 +360,8 @@ _push:
 	}
 
 _header_again:
+    printf("_header_again ! \n");
+
 		cs = CS_HEADER;
 		++p;
 	} while(p != pe);
@@ -352,10 +381,14 @@ _failed:
 	goto _end;
 
 _out:
+  printf("_out ! \n");
+
 	ret = 0;
 	goto _end;
 
 _end:
+  printf("_end ! \n");
+
 	ctx->cs = cs;
 	ctx->trail = trail;
 	ctx->top = top;

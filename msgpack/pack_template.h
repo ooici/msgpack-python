@@ -640,6 +640,18 @@ msgpack_pack_inline_func(_map)(msgpack_pack_user x, unsigned int n)
 	}
 }
 
+/*
+ * NP Array
+ */
+
+msgpack_pack_inline_func(_np_array)(msgpack_pack_user x, unsigned int ld)
+{
+  unsigned char buf[3];
+  buf[0] = 0xc4; *(uint16_t*)&buf[1] = _msgpack_be16(ld);
+  msgpack_pack_append_buffer(x, buf, 3);
+}
+
+
 
 /*
  * Raw
