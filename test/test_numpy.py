@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from nose import main
 from nose.tools import *
 import unittest
 
@@ -32,9 +31,26 @@ def encode_numpy( obj):
         raise TypeError('Unknown type in user specified encoder')
     return obj
 
+def decode_numpy_as_string( obj):
+    if "__ion_array__" in obj:
+        return numpy.frombuffer(obj['content'],dtype=numpy.dtype(obj['shape']['type'])).reshape(obj['shape']['lengths'])
+
+    return obj
+
+def encode_numpy_as_string( obj):
+    if isinstance(obj, numpy.ndarray):
+        return {"shape":{"type":str(obj.dtype),"nd":len(obj.shape),"lengths":obj.shape},"content":obj.tostring(),"__ion_array__":True}
+
+    else:
+        # Must raise type error to avoid recursive failure
+        raise TypeError('Unknown type in user specified encoder')
+    return obj
+
+
+
 count =0
 
-class NumpyMsgPackTestCase(unittest.TestCase):
+class PackRunBase(object):
 
     _decoder = None
     _encoder = None
@@ -58,7 +74,7 @@ class NumpyMsgPackTestCase(unittest.TestCase):
         ('uint64',('uint64',random.randint,(0, (1 << 64)-1)) ),
 
 
-        ('float16_eps',('float16',lambda o: 1+o ,(numpy.finfo('float16').eps,)) ),
+        ('float16_eps',('float16',lambda o: numpy.float16("1.0")+o ,(numpy.finfo('float16').eps,)) ),
         ('float16_epsneg',('float16',lambda o: 1-o ,(numpy.finfo('float16').epsneg,)) ),
         ('float16',('float16',numpy.random.uniform,(numpy.finfo('float16').min, numpy.finfo('float16').max)) ),
 
@@ -73,6 +89,9 @@ class NumpyMsgPackTestCase(unittest.TestCase):
         ('complex64',('complex64',lambda a,b: numpy.complex(numpy.random.uniform(a,b), numpy.random.uniform(a,b)) ,(numpy.finfo('float32').min, numpy.finfo('float32').max)) ),
         ('complex128',('complex128',lambda a,b: numpy.complex(numpy.random.uniform(a,b), numpy.random.uniform(a,b)) ,(numpy.finfo('float64').min, numpy.finfo('float64').max)) ),
 
+
+        ('object',(object,lambda o: {count:chr(count)*8}, (None,)))
+
         ]
     )
 
@@ -81,7 +100,6 @@ class NumpyMsgPackTestCase(unittest.TestCase):
 
 
     def __init__(self, *args, **kwargs):
-        super(NumpyMsgPackTestCase, self).__init__(*args,**kwargs)
 
         self._decoder = decode_numpy
         self._encoder = encode_numpy
@@ -92,8 +110,8 @@ class NumpyMsgPackTestCase(unittest.TestCase):
             print "========================"
             print "========================"
             print "========================"
-            for type,(type, func, args) in self.types.iteritems():
-                print "Running type: %s, shape: %s" % (type, str(shape))
+            for type_name,(type, func, args) in self.types.iteritems():
+                print "Running type: %s, shape: %s" % (type_name, str(shape))
                 self.run_it(self._encoder, self._decoder, type, func, args, shape)
 
 
@@ -101,8 +119,9 @@ class NumpyMsgPackTestCase(unittest.TestCase):
 
         array = numpy.zeros(shape, type)
 
+
         count = 0
-        for x in numpy.nditer(array, op_flags=['readwrite']):
+        for x in numpy.nditer(array, flags=['refs_ok'], op_flags=['readwrite']):
             count +=1
             x[...] = func(*args)
 
@@ -111,10 +130,22 @@ class NumpyMsgPackTestCase(unittest.TestCase):
         new_array = unpackb(msg,object_hook=decoder)
         toc = time.time() - tic
 
-
         print 'Binary Size: "%d", Time: %s' % (len(msg), toc)
 
         assert_true((array == new_array).all())
 
 
+class NumpyMsgPackTestCase(unittest.TestCase, PackRunBase ):
+
+    def __init__(self,*args, **kwargs):
+        unittest.TestCase.__init__(self,*args, **kwargs)
+        PackRunBase.__init__(self,*args, **kwargs)
+
+
+
+if __name__ == '__main__':
+
+    pb = PackRunBase()
+
+    pb.test_all()
 
