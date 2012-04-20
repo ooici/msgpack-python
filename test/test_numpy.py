@@ -9,6 +9,8 @@ import time
 import numpy
 import random
 from msgpack import packb, unpackb
+import hashlib
+
 
 def decode_numpy( obj):
     if "__ion_array__" in obj:
@@ -46,7 +48,8 @@ def encode_numpy_as_string( obj):
         raise TypeError('Unknown type in user specified encoder')
     return obj
 
-
+def sha1(buf):
+    return hashlib.sha1(buf).hexdigest().upper()
 
 count =0
 
@@ -90,7 +93,7 @@ class PackRunBase(object):
         ('complex128',('complex128',lambda a,b: numpy.complex(numpy.random.uniform(a,b), numpy.random.uniform(a,b)) ,(numpy.finfo('float64').min, numpy.finfo('float64').max)) ),
 
 
-        ('object',(object,lambda o: {count:chr(count)*8}, (None,)))
+        ('object',('object',lambda o: {count:chr(count)*8}, (None,)))
 
         ]
     )
@@ -133,6 +136,9 @@ class PackRunBase(object):
         print 'Binary Size: "%d", Time: %s' % (len(msg), toc)
 
         assert_true((array == new_array).all())
+
+        if type is not 'object':
+            assert_equals(sha1(array.tostring()), sha1(new_array.tostring()))
 
 
 class NumpyMsgPackTestCase(unittest.TestCase, PackRunBase ):
